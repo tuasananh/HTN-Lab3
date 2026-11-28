@@ -1,6 +1,6 @@
 # Báo cáo thực hành 3 – Đo công suất của STM32F429 ở các chế độ hoạt động
 
-Điền kết quả thực nghiệm vào các ô `…`. Trong các bảng đo, U và I lần lượt là điện áp và dòng điện đọc trên đồng hồ USB. Ghi công suất hiển thị vào cột **P đo**. Nếu đồng hồ chỉ hiển thị điện áp và dòng điện, tính **P đo (mW) = U (V) × I (mA)**. Cột **P hiệu chỉnh** bằng P đo trừ công suất không tải ở mục 3.0. [Đề thực hành](Lab3_IT4210E-Low%20power%20modes.pdf)
+Điền kết quả thực nghiệm vào các ô `…`. Trong các bảng đo, U và I lần lượt là điện áp và dòng điện đọc trên đồng hồ USB. Lấy công suất đo từ màn hình đồng hồ USB. Nếu đồng hồ chỉ hiển thị điện áp và dòng điện, tính **P đo (mW) = U (V) × I (mA)**. Công suất hiệu chỉnh bằng công suất đo trừ công suất không tải ở mục 3.0. [Đề thực hành](Lab3_IT4210E-Low%20power%20modes.pdf)
 
 ## 3.0. Đo công suất không tải của đồng hồ USB
 
@@ -8,33 +8,34 @@ Ngày 27/11/2026, đồng hồ USB được cắm vào máy tính và đọc s�
 
 | Điều kiện đo | U (V) | I (mA) | P tính từ U × I (mW) |
 | --- | ---: | ---: | ---: |
-| Đầu ra đồng hồ để trống | 5 | 0 | 0 |
-| Đã nối bo STM32F429 Discovery | 5 | 80 | 400 |
+| Đầu ra đồng hồ để trống | 4.983 | 0 | 0 |
+|     |  |  |  |
 
 Công suất không tải dùng để hiệu chỉnh các phép đo sau là **0 mW**. Giá trị **400 mW** là số đo kiểm tra ban đầu khi đã nối bo. Chương trình và chế độ hoạt động của bo tại thời điểm đó chưa được ghi lại.
 
 ## 3.1. Bài 1 – Ảnh hưởng của tần số HCLK đến công suất ở chế độ Run
 
-Đề ghi cùng một trạng thái **LD3 sáng, LD4 tắt** trong bốn khoảng liên tiếp, mỗi khoảng 5 giây. Mỗi hàng dưới đây ứng với một lần đọc. Ghi thời gian và điện năng tích lũy theo bộ đếm trên đồng hồ tại thời điểm đọc. Nếu đồng hồ hiển thị Wh, nhân với 1.000 để đổi sang mWh.
+Ở mỗi tần số HCLK, hai LED lần lượt chuyển qua bốn trạng thái theo thứ tự trong bảng. Mỗi trạng thái kéo dài 5 giây. Ghi công suất đã hiệu chỉnh vào cột P.
 
-| HCLK (MHz) | Khoảng 5 giây | U (V) | I (mA) | P đo (mW) | P hiệu chỉnh (mW) | Thời gian trên đồng hồ (giờ:phút:giây) | Điện năng tích lũy (mWh) |
-| ---: | ---: | ---: | ---: | ---: | ---: | --- | ---: |
-| 16 | 1 | … | … | … | … | … | … |
-| 16 | 2 | … | … | … | … | … | … |
-| 16 | 3 | … | … | … | … | … | … |
-| 16 | 4 | … | … | … | … | … | … |
-| 96 | 1 | … | … | … | … | … | … |
-| 96 | 2 | … | … | … | … | … | … |
-| 96 | 3 | … | … | … | … | … | … |
-| 96 | 4 | … | … | … | … | … | … |
-| 180 | 1 | … | … | … | … | … | … |
-| 180 | 2 | … | … | … | … | … | … |
-| 180 | 3 | … | … | … | … | … | … |
-| 180 | 4 | … | … | … | … | … | … |
+| HCLK (MHz) | LD3 | LD4 | U (V) | I (mA) | P (mW) |
+| ---: | --- | --- | ---: | ---: | ---: |
+| 16 | Sáng | Tắt | 4.967 | 0.110 | … |
+| 16 | Tắt | Sáng | … | … | … |
+| 16 | Tắt | Tắt | … | … | … |
+| 16 | Sáng | Sáng | … | … | … |
+| 96 | Sáng | Tắt | … | … | … |
+| 96 | Tắt | Sáng | … | … | … |
+| 96 | Tắt | Tắt | … | … | … |
+| 96 | Sáng | Sáng | … | … | … |
+| 180 | Sáng | Tắt | … | … | … |
+| 180 | Tắt | Sáng | … | … | … |
+| 180 | Tắt | Tắt | … | … | … |
+| 180 | Sáng | Sáng | … | … | … |
+
+Khi chạy kiểm tra ban đầu ở 16 MHz, đề yêu cầu đọc thêm thời gian và điện năng tích lũy trên đồng hồ USB.
 
 | Nội dung cần báo cáo | Kết quả hoặc nhận xét |
 | --- | --- |
-| Quan sát LD3 và LD4 khi chạy chương trình trên bo. | … |
 | Với cùng trạng thái LED, công suất hiệu chỉnh thay đổi thế nào khi HCLK tăng từ 16 lên 96 rồi 180 MHz? Dẫn số đo để so sánh. | … |
 | Ngoài CPU, những thành phần nào góp phần vào công suất đo tại cổng USB? | … |
 
