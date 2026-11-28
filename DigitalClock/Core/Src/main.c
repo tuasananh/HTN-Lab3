@@ -34,6 +34,9 @@
 
 /* Private define ------------------------------------------------------------*/
 /* USER CODE BEGIN PD */
+#define CLOCK_RUN_MS       10000U
+#define CLOCK_SLEEP_MS     10000U
+#define CLOCK_POLL_MS      20U
 #define CLOCK_TEXT_X       12U
 #define CLOCK_WEEKDAY_Y    40U
 #define CLOCK_DATE_Y       112U
@@ -52,6 +55,7 @@ RTC_HandleTypeDef hrtc;
 SPI_HandleTypeDef hspi5;
 
 /* USER CODE BEGIN PV */
+static volatile uint32_t lastActivityTick;
 
 /* USER CODE END PV */
 
@@ -126,7 +130,7 @@ static void Clock_DrawDate(const RTC_DateTypeDef *date)
                          WHITE, BLACK, CLOCK_FONT_SCALE);
 }
 
-static void Clock_DrawTime(const RTC_TimeTypeDef *time, char previousText[9])
+static void Clock_DrawTime(const RTC_TimeTypeDef *time, char previousText[9], uint8_t fullRedraw)
 {
   char text[9];
   int length = snprintf(text, sizeof(text), "%02u:%02u:%02u",
@@ -142,7 +146,7 @@ static void Clock_DrawTime(const RTC_TimeTypeDef *time, char previousText[9])
   uint16_t x = 55;
   for (uint8_t i = 0; i < 8; i++)
   {
-    if (text[i] != previousText[i])
+    if (fullRedraw || text[i] != previousText[i])
     {
       ILI9341_DrawCharScaled(text[i], FONT4, x, CLOCK_TIME_Y,
                              WHITE, BLACK, CLOCK_FONT_SCALE);
@@ -151,6 +155,61 @@ static void Clock_DrawTime(const RTC_TimeTypeDef *time, char previousText[9])
     x += ILI9341_GetCharAdvance(text[i], FONT4, CLOCK_FONT_SCALE);
   }
   previousText[8] = '\0';
+}
+
+static void Clock_UpdateDisplay(uint8_t fullRedraw)
+{
+  static RTC_DateTypeDef previousDate;
+  static RTC_TimeTypeDef previousTime;
+  static char previousText[9];
+  RTC_TimeTypeDef time = {0};
+  RTC_DateTypeDef date = {0};
+
+  /* Reading the date releases the RTC shadow registers after a time read. */
+  if (HAL_RTC_GetTime(&hrtc, &time, RTC_FORMAT_BIN) != HAL_OK ||
+      HAL_RTC_GetDate(&hrtc, &date, RTC_FORMAT_BIN) != HAL_OK)
+  {
+    Error_Handler();
+  }
+
+  if (fullRedraw || date.Date != previousDate.Date || date.Month != previousDate.Month ||
+      date.Year != previousDate.Year || date.WeekDay != previousDate.WeekDay)
+  {
+    Clock_DrawDate(&date);
+    previousDate = date;
+  }
+  if (fullRedraw || time.Hours != previousTime.Hours ||
+      time.Minutes != previousTime.Minutes || time.Seconds != previousTime.Seconds)
+  {
+    Clock_DrawTime(&time, previousText, fullRedraw);
+    previousTime = time;
+  }
+}
+
+static void Clock_TryStandby(uint32_t activityTick)
+{
+  ILI9341_DrawRectangle(0, 0, LCD_WIDTH, LCD_HEIGHT, BLACK);
+  ILI9341_DrawTextScaled("Standby..", FONT4, CLOCK_TEXT_X, CLOCK_DATE_Y,
+                         WHITE, BLACK, CLOCK_FONT_SCALE);
+  ILI9341_DrawText("Press PA0 to wake up", FONT3, CLOCK_TEXT_X, CLOCK_TIME_Y, WHITE, BLACK);
+
+  /* A press during the SPI transfer or while arming WKUP must still count. */
+  __disable_irq();
+  __HAL_PWR_CLEAR_FLAG(PWR_FLAG_WU);
+  HAL_PWR_EnableWakeUpPin(PWR_WAKEUP_PIN1);
+  if (lastActivityTick == activityTick && HAL_GPIO_ReadPin(GPIOA, GPIO_PIN_0) == GPIO_PIN_RESET &&
+      __HAL_GPIO_EXTI_GET_IT(GPIO_PIN_0) == RESET)
+  {
+    HAL_SuspendTick();
+    SCB->ICSR = SCB_ICSR_PENDSTCLR_Msk;
+    __DSB();
+    HAL_PWR_EnterSTANDBYMode();
+    /* A pending interrupt can prevent WFI from entering Standby. */
+    CLEAR_BIT(SCB->SCR, SCB_SCR_SLEEPDEEP_Msk);
+    HAL_ResumeTick();
+  }
+  HAL_PWR_DisableWakeUpPin(PWR_WAKEUP_PIN1);
+  __enable_irq();
 }
 
 /* USER CODE END 0 */
@@ -187,49 +246,54 @@ int main(void)
   MX_SPI5_Init();
   MX_RTC_Init();
   /* USER CODE BEGIN 2 */
+  HAL_PWR_DisableWakeUpPin(PWR_WAKEUP_PIN1);
+  if (__HAL_RTC_IS_CALENDAR_INITIALIZED(&hrtc) == 0U ||
+      (__HAL_RCC_GET_FLAG(RCC_FLAG_PORRST) && !__HAL_PWR_GET_FLAG(PWR_FLAG_SB)))
+  {
+    Clock_SetInitialDateTime();
+  }
+  __HAL_PWR_CLEAR_FLAG(PWR_FLAG_SB);
+  __HAL_RCC_CLEAR_RESET_FLAGS();
+
   ILI9341_Init();
   ILI9341_DrawRectangle(0, 0, LCD_WIDTH, LCD_HEIGHT, BLACK);
-  Clock_SetInitialDateTime();
+  Clock_UpdateDisplay(1);
+  lastActivityTick = HAL_GetTick();
+  uint32_t lastPoll = lastActivityTick;
   /* USER CODE END 2 */
 
   /* Infinite loop */
   /* USER CODE BEGIN WHILE */
-  RTC_TimeTypeDef rtcTime = {0};
-  RTC_DateTypeDef rtcDate = {0};
-  RTC_TimeTypeDef previousTime = {0};
-  RTC_DateTypeDef previousDate = {0};
-  char previousTimeText[9] = {0};
-  uint8_t firstDraw = 1;
-
   while (1)
   {
-	if (HAL_RTC_GetTime(&hrtc, &rtcTime, RTC_FORMAT_BIN) != HAL_OK)
-	{
-		Error_Handler();
-	}
+    uint32_t activityTick = lastActivityTick;
+    uint32_t now = HAL_GetTick();
+    uint32_t idle = now - activityTick;
 
-	if (HAL_RTC_GetDate(&hrtc, &rtcDate, RTC_FORMAT_BIN) != HAL_OK)
-	{
-		Error_Handler();
-	}
+    if (idle >= CLOCK_RUN_MS + CLOCK_SLEEP_MS && HAL_GPIO_ReadPin(GPIOA, GPIO_PIN_0) == GPIO_PIN_RESET)
+    {
+      Clock_TryStandby(activityTick);
+      /* A successful Standby wake restarts main. A cancelled entry returns here. */
+      ILI9341_DrawRectangle(0, 0, LCD_WIDTH, LCD_HEIGHT, BLACK);
+      Clock_UpdateDisplay(1);
+      lastPoll = HAL_GetTick();
+      continue;
+    }
 
-	if (firstDraw || (rtcDate.Date != previousDate.Date) ||
-		(rtcDate.Month != previousDate.Month) || (rtcDate.Year != previousDate.Year) ||
-		(rtcDate.WeekDay != previousDate.WeekDay))
-	{
-		Clock_DrawDate(&rtcDate);
-		previousDate = rtcDate;
-	}
+    if (now - lastPoll >= CLOCK_POLL_MS)
+    {
+      Clock_UpdateDisplay(0);
+      lastPoll = now;
+    }
 
-	if (firstDraw || (rtcTime.Hours != previousTime.Hours) ||
-		(rtcTime.Minutes != previousTime.Minutes) || (rtcTime.Seconds != previousTime.Seconds))
-	{
-		Clock_DrawTime(&rtcTime, previousTimeText);
-		previousTime = rtcTime;
-	}
-
-	firstDraw = 0;
-	HAL_Delay(20);
+    if (idle >= CLOCK_RUN_MS)
+    {
+      HAL_PWR_EnterSLEEPMode(PWR_MAINREGULATOR_ON, PWR_SLEEPENTRY_WFI);
+    }
+    else
+    {
+      HAL_Delay(CLOCK_POLL_MS);
+    }
 
     /* USER CODE END WHILE */
 
@@ -312,7 +376,7 @@ static void MX_RTC_Init(void)
   hrtc.Instance = RTC;
   hrtc.Init.HourFormat = RTC_HOURFORMAT_24;
   hrtc.Init.AsynchPrediv = 127;
-  hrtc.Init.SynchPrediv = 255;
+  hrtc.Init.SynchPrediv = 249;
   hrtc.Init.OutPut = RTC_OUTPUT_DISABLE;
   hrtc.Init.OutPutPolarity = RTC_OUTPUT_POLARITY_HIGH;
   hrtc.Init.OutPutType = RTC_OUTPUT_TYPE_OPENDRAIN;
@@ -377,6 +441,7 @@ static void MX_GPIO_Init(void)
   /* USER CODE END MX_GPIO_Init_1 */
 
   /* GPIO Ports Clock Enable */
+  __HAL_RCC_GPIOA_CLK_ENABLE();
   __HAL_RCC_GPIOF_CLK_ENABLE();
   __HAL_RCC_GPIOH_CLK_ENABLE();
   __HAL_RCC_GPIOC_CLK_ENABLE();
@@ -402,12 +467,28 @@ static void MX_GPIO_Init(void)
   GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
   HAL_GPIO_Init(GPIOD, &GPIO_InitStruct);
 
+  /* USER button on PA0/WKUP */
+  GPIO_InitStruct.Pin = GPIO_PIN_0;
+  GPIO_InitStruct.Mode = GPIO_MODE_IT_RISING;
+  GPIO_InitStruct.Pull = GPIO_NOPULL;
+  HAL_GPIO_Init(GPIOA, &GPIO_InitStruct);
+
+  HAL_NVIC_SetPriority(EXTI0_IRQn, 0, 0);
+  HAL_NVIC_EnableIRQ(EXTI0_IRQn);
+
   /* USER CODE BEGIN MX_GPIO_Init_2 */
 
   /* USER CODE END MX_GPIO_Init_2 */
 }
 
 /* USER CODE BEGIN 4 */
+void HAL_GPIO_EXTI_Callback(uint16_t pin)
+{
+  if (pin == GPIO_PIN_0)
+  {
+    lastActivityTick = HAL_GetTick();
+  }
+}
 
 /* USER CODE END 4 */
 
