@@ -1,0 +1,6 @@
+# CMake build output and local presets
+build/
+CMakeUserPresets.json
+
+# Machine-specific VS Code settings
+**/.vscode/settings.json
