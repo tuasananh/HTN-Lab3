@@ -19,18 +19,18 @@ Công suất không tải dùng để hiệu chỉnh các phép đo sau là **0 
 
 | HCLK (MHz) | LD3 | LD4 | U (V) | I (mA) | P (mW) |
 | ---: | --- | --- | ---: | ---: | ---: |
-| 16 | Sáng | Tắt | 4.967 | 0.110 | … |
-| 16 | Tắt | Sáng | … | … | … |
-| 16 | Tắt | Tắt | … | … | … |
-| 16 | Sáng | Sáng | … | … | … |
-| 96 | Sáng | Tắt | … | … | … |
-| 96 | Tắt | Sáng | … | … | … |
-| 96 | Tắt | Tắt | … | … | … |
-| 96 | Sáng | Sáng | … | … | … |
-| 180 | Sáng | Tắt | … | … | … |
-| 180 | Tắt | Sáng | … | … | … |
-| 180 | Tắt | Tắt | … | … | … |
-| 180 | Sáng | Sáng | … | … | … |
+| 16 | Sáng | Tắt | 4.965 | 110 | 551 |
+| 16 | Tắt | Sáng | 4.966 | 110 | 546 |
+| 16 | Tắt | Tắt | 4.965 | 109 | 541 |
+| 16 | Sáng | Sáng | 4.966 | 113 | 561 |
+| 96 | Sáng | Tắt | 4.962 | 126 | 625 |
+| 96 | Tắt | Sáng | 4.962 | 125 | 620 |
+| 96 | Tắt | Tắt | 4.962 | 124 | 615 |
+| 96 | Sáng | Sáng | 4.962 | 127 | 630 |
+| 180 | Sáng | Tắt | 4.959 | 152 | 753 |
+| 180 | Tắt | Sáng | 4.959 | 152 | 753 |
+| 180 | Tắt | Tắt | 4.958 | 150 | 743 |
+| 180 | Sáng | Sáng | 4.958 | 154 | 763 |
 
 Khi chạy kiểm tra ban đầu ở 16 MHz, đề yêu cầu đọc thêm thời gian và điện năng tích lũy trên đồng hồ USB.
 
@@ -45,10 +45,10 @@ Cả hai phép thử dùng HCLK 96 MHz. Ở mục 3.2.1, ngắt SysTick đánh t
 
 | Phép thử | Trạng thái LD3 và LD4 | U (V) | I (mA) | P đo (mW) | P hiệu chỉnh (mW) |
 | --- | --- | ---: | ---: | ---: | ---: |
-| 3.2.1 – SysTick | Cả hai sáng | … | … | … | … |
-| 3.2.1 – SysTick | Cả hai tắt | … | … | … | … |
-| 3.2.2 – Nút PA0 | Cả hai sáng | … | … | … | … |
-| 3.2.2 – Nút PA0 | Cả hai tắt | … | … | … | … |
+| 3.2.1 – SysTick | Cả hai sáng | 4.944 | 117 | 578 | … |
+| 3.2.1 – SysTick | Cả hai tắt | 4.944 | 114 | 563 | … |
+| 3.2.2 – Nút PA0 | Cả hai sáng | 4.944 | 117 | 578 | … |
+| 3.2.2 – Nút PA0 | Cả hai tắt | 4.944 | 114 | 563 | … |
 
 | Nội dung cần báo cáo | Kết quả hoặc nhận xét |
 | --- | --- |
@@ -62,12 +62,12 @@ HCLK trong bảng là tần số cấu hình khi CPU chạy. Dùng nút PA0 đ�
 
 | HCLK trước khi vào Stop (MHz) | Trạng thái LD3 và LD4 | U (V) | I (mA) | P đo (mW) | P hiệu chỉnh (mW) |
 | ---: | --- | ---: | ---: | ---: | ---: |
-| 16 | Cả hai sáng | … | … | … | … |
-| 16 | Cả hai tắt | … | … | … | … |
-| 96 | Cả hai sáng | … | … | … | … |
-| 96 | Cả hai tắt | … | … | … | … |
-| 180 | Cả hai sáng | … | … | … | … |
-| 180 | Cả hai tắt | … | … | … | … |
+| 16 | Cả hai sáng | 4.946 | 108 | 534 | … |
+| 16 | Cả hai tắt | 4.946 | 105 | 519 | … |
+| 96 | Cả hai sáng | 4.947 | 108 | 534 | … |
+| 96 | Cả hai tắt | 4.946 | 105 | 519 | … |
+| 180 | Cả hai sáng | 4.945 | 108 | 534 | … |
+| 180 | Cả hai tắt | 4.946 | 105 | 519 | … |
 
 | Nội dung cần báo cáo | Kết quả hoặc nhận xét |
 | --- | --- |
@@ -80,15 +80,15 @@ HCLK trong bảng là tần số cấu hình khi CPU chạy. Dùng nút PA0 đ�
 
 | HCLK khi chạy (MHz) | Thời điểm đo | U (V) | I (mA) | P đo (mW) | P hiệu chỉnh (mW) |
 | ---: | --- | ---: | ---: | ---: | ---: |
-| 16 | Run, cả hai LED sáng | … | … | … | … |
-| 16 | Run, cả hai LED tắt | … | … | … | … |
-| 16 | Standby | … | … | … | … |
-| 96 | Run, cả hai LED sáng | … | … | … | … |
-| 96 | Run, cả hai LED tắt | … | … | … | … |
-| 96 | Standby | … | … | … | … |
-| 180 | Run, cả hai LED sáng | … | … | … | … |
-| 180 | Run, cả hai LED tắt | … | … | … | … |
-| 180 | Standby | … | … | … | … |
+| 16 | Run, cả hai LED sáng | 4.948 | 113 | 559 | … |
+| 16 | Run, cả hai LED tắt | 4.949 | 109 | 539 | … |
+| 16 | Standby | 4.949 | 103 | 509 | … |
+| 96 | Run, cả hai LED sáng | 4.942 | 130 | 642 | … |
+| 96 | Run, cả hai LED tắt | 4.947 | 127 | 628 | … |
+| 96 | Standby | 4.949 | 103 | 509 | … |
+| 180 | Run, cả hai LED sáng | 4.943 | 158 | 780 | … |
+| 180 | Run, cả hai LED tắt | 4.941 | 155 | 765 | … |
+| 180 | Standby | 4.949 | 103 | 509 | … |
 
 | Thao tác kiểm tra | Trạng thái LED khi CPU chạy | Thời gian đến khi công suất giảm (s) | Diễn biến công suất quan sát được |
 | --- | --- | ---: | --- |

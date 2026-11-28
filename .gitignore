@@ -4,3 +4,7 @@ CMakeUserPresets.json
 
 # Machine-specific VS Code settings
 **/.vscode/settings.json
+
+LedPower_Ex2/
+LedPower_Ex1/
+LedPower_Ex4/
